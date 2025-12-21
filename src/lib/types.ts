@@ -3,6 +3,7 @@ export interface Land {
   district: string;
   division: string;
   area: string;
+  areaUnit: string;
   mapReference: string;
 }
 
@@ -23,6 +24,7 @@ export interface Deed {
   deedType: string;
   status: DeedStatus;
   previousDeedNumber?: string; // For transfers
+  notes?: string;
 }
 
 export interface AuditLog {
