@@ -160,7 +160,8 @@ export function initializeSampleData() {
       landNumber: 'L001',
       district: 'Colombo',
       division: 'Colombo 1',
-      area: '10 Perches',
+      area: '10',
+      areaUnit: 'Perches',
       mapReference: 'M-101'
     });
     registerOwner({

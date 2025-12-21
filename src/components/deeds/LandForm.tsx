@@ -17,6 +17,7 @@ export function LandForm({ onSubmit, onCancel, isLoading = false }: LandFormProp
     district: '',
     division: '',
     area: '',
+    areaUnit: 'Perches',
     mapReference: '',
   });
 
@@ -77,7 +78,18 @@ export function LandForm({ onSubmit, onCancel, isLoading = false }: LandFormProp
               id="area"
               value={formData.area}
               onChange={handleChange('area')}
-              placeholder="e.g., 10 Perches"
+              placeholder="e.g., 10"
+              required
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="areaUnit">Area Unit *</Label>
+            <Input
+              id="areaUnit"
+              value={formData.areaUnit}
+              onChange={handleChange('areaUnit')}
+              placeholder="e.g., Perches, Acres"
               required
             />
           </div>
