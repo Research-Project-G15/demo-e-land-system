@@ -45,6 +45,19 @@ export function DeedForm({ onSubmit, onCancel, isLoading = false, initialData }:
     loadOwners();
   }, []);
 
+  // Update form data when initialData changes
+  useEffect(() => {
+    if (initialData) {
+      setFormData(prev => ({
+        ...prev,
+        ...initialData,
+        // Ensure we don't overwrite with undefined if initialData has missing keys
+        deedNumber: initialData.deedNumber || prev.deedNumber,
+        landNumber: initialData.landNumber || prev.landNumber,
+      }));
+    }
+  }, [initialData]);
+
   const generateDeedId = () => {
     const timestamp = Date.now().toString(36).toUpperCase();
     const random = Math.random().toString(36).substring(2, 7).toUpperCase();

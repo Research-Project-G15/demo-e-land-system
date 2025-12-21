@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Header } from '@/components/layout/Header';
 import { DeedForm } from '@/components/deeds/DeedForm';
-import { getDeed, transferOwnership, getOwner, registerOwner } from '@/lib/deedStorage';
+import { getDeed, transferOwnership, getOwner, registerOwner, getNextDeedId } from '@/lib/deedStorage';
 import { Deed, Owner } from '@/lib/types';
 import { useToast } from '@/components/ui/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,10 +22,9 @@ const TransferOwnershipPage = () => {
         const deed = await getDeed(deedNumber);
         if (deed && deed.status === 'ACTIVE') {
           setSourceDeed(deed);
-          // Generate new deed number
-          const timestamp = Date.now().toString(36).toUpperCase();
-          const random = Math.random().toString(36).substring(2, 7).toUpperCase();
-          setNewDeedNumber(`DEED-${timestamp}-${random}`);
+          // Generate new deed number based on previous deed ID
+          const nextId = await getNextDeedId(deed.deedNumber);
+          setNewDeedNumber(nextId);
         } else {
           toast({
             title: "Error",

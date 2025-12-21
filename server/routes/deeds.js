@@ -16,6 +16,55 @@ const mapDeed = (row) => ({
   notes: row.notes
 });
 
+// Get next deed ID
+router.get('/next-id', async (req, res) => {
+  try {
+    const { previousDeedId } = req.query;
+
+    if (previousDeedId) {
+      // Logic for transfer: PreviousID-Sequence (e.g., D001-01)
+      // Find all deeds that start with the previousDeedId followed by a hyphen
+      const result = await db.query(
+        "SELECT deed_number FROM deeds WHERE deed_number LIKE $1 ORDER BY length(deed_number) DESC, deed_number DESC LIMIT 1",
+        [`${previousDeedId}-%`]
+      );
+
+      let nextId = `${previousDeedId}-01`;
+
+      if (result.rows.length > 0) {
+        const lastId = result.rows[0].deed_number;
+        // Extract the sequence part after the last hyphen
+        const parts = lastId.split('-');
+        const lastSequence = parseInt(parts[parts.length - 1]);
+        
+        if (!isNaN(lastSequence)) {
+           const nextSequence = lastSequence + 1;
+           nextId = `${previousDeedId}-${nextSequence.toString().padStart(2, '0')}`;
+        }
+      }
+      return res.json({ nextId });
+    }
+
+    // Logic for new registration: D001, D002...
+    // Find the latest deed number that starts with 'D' followed by numbers (and NO hyphens to avoid confusing with transfer IDs)
+    const result = await db.query("SELECT deed_number FROM deeds WHERE deed_number ~ '^D[0-9]+$' ORDER BY length(deed_number) DESC, deed_number DESC LIMIT 1");
+    
+    let nextId = 'D001';
+    
+    if (result.rows.length > 0) {
+      const lastId = result.rows[0].deed_number;
+      const numberPart = parseInt(lastId.substring(1));
+      const nextNumber = numberPart + 1;
+      nextId = `D${nextNumber.toString().padStart(3, '0')}`;
+    }
+    
+    res.json({ nextId });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 // Get all deeds
 router.get('/', async (req, res) => {
   try {

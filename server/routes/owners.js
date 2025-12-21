@@ -2,6 +2,33 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 
+// Search owners
+router.get('/search', async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q) {
+      return res.json([]);
+    }
+    
+    const result = await db.query(
+      'SELECT * FROM owners WHERE nic ILIKE $1 OR full_name ILIKE $1 LIMIT 10', 
+      [`%${q}%`]
+    );
+    
+    const owners = result.rows.map(row => ({
+      nic: row.nic,
+      fullName: row.full_name,
+      address: row.address,
+      contactNumber: row.contact_number
+    }));
+    
+    res.json(owners);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 // Get all owners
 router.get('/', async (req, res) => {
   try {

@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { getAllOwners, registerLand, registerDeed } from '@/lib/deedStorage';
+import { getAllOwners, registerLand, registerDeed, searchOwners, getNextDeedId } from '@/lib/deedStorage';
 import { MapPin, User, FileText, Search, CheckCircle2, ArrowRight, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Separator } from '@/components/ui/separator';
@@ -35,6 +35,7 @@ export function DeedRegistrationWizard({ onSuccess }: DeedRegistrationWizardProp
   const [ownerSearchQuery, setOwnerSearchQuery] = useState('');
   const [owners, setOwners] = useState<Owner[]>([]);
   const [filteredOwners, setFilteredOwners] = useState<Owner[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const [deedData, setDeedData] = useState<Deed>({
     deedNumber: '',
@@ -47,27 +48,50 @@ export function DeedRegistrationWizard({ onSuccess }: DeedRegistrationWizardProp
 
   useEffect(() => {
     const fetchOwners = async () => {
-      const allOwners = await getAllOwners();
-      setOwners(allOwners);
+      try {
+        const allOwners = await getAllOwners();
+        setOwners(allOwners);
+      } catch (error) {
+        console.error("Error fetching owners:", error);
+      }
     };
     fetchOwners();
   }, []);
 
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value;
+    setOwnerSearchQuery(query);
+  };
+
+  // Effect for debounced search
   useEffect(() => {
-    if (ownerSearchQuery) {
-      setFilteredOwners(owners.filter(o => o.nic.toLowerCase().includes(ownerSearchQuery.toLowerCase())));
-    } else {
-      setFilteredOwners([]);
-    }
-  }, [ownerSearchQuery, owners]);
+    const delayDebounceFn = setTimeout(async () => {
+      if (ownerSearchQuery.trim()) {
+        try {
+          const results = await searchOwners(ownerSearchQuery);
+          setFilteredOwners(results);
+          setShowSuggestions(true);
+        } catch (error) {
+          console.error("Search failed", error);
+        }
+      } else {
+        setFilteredOwners([]);
+        setShowSuggestions(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [ownerSearchQuery]);
 
   // Generate Deed ID when entering step 3
   useEffect(() => {
-    if (step === 3 && !deedData.deedNumber) {
-      const timestamp = Date.now().toString(36).toUpperCase();
-      const random = Math.random().toString(36).substring(2, 7).toUpperCase();
-      setDeedData(prev => ({ ...prev, deedNumber: `DEED-${timestamp}-${random}` }));
-    }
+    const fetchNextId = async () => {
+      if (step === 3 && !deedData.deedNumber) {
+        const nextId = await getNextDeedId();
+        setDeedData(prev => ({ ...prev, deedNumber: nextId }));
+      }
+    };
+    fetchNextId();
   }, [step]);
 
   const handleLandChange = (field: keyof Land) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -129,7 +153,7 @@ export function DeedRegistrationWizard({ onSuccess }: DeedRegistrationWizardProp
       // Note: In a real app, we might check if land exists first, but here we assume new land for new deed or update
       // For simplicity, we'll try to register land. If it exists, we might need to handle that (or assume this flow creates new land)
       // The requirement says "Land & Deed Registration", implying both.
-      
+
       try {
         await registerLand(landData);
       } catch (e) {
@@ -146,7 +170,7 @@ export function DeedRegistrationWizard({ onSuccess }: DeedRegistrationWizardProp
       };
 
       await registerDeed(finalDeedData);
-      
+
       setShowConfirmDialog(false);
       setShowSuccessDialog(true);
     } catch (error) {
@@ -169,7 +193,7 @@ export function DeedRegistrationWizard({ onSuccess }: DeedRegistrationWizardProp
       <div className="mb-8">
         <div className="flex items-center justify-between relative">
           <div className="absolute left-0 top-1/2 transform -translate-y-1/2 w-full h-1 bg-muted -z-10" />
-          
+
           {[1, 2, 3].map((s) => (
             <div key={s} className={`flex flex-col items-center bg-background px-4 ${step >= s ? 'text-primary' : 'text-muted-foreground'}`}>
               <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 mb-2 ${step >= s ? 'border-primary bg-primary text-primary-foreground' : 'border-muted bg-background'}`}>
@@ -237,30 +261,38 @@ export function DeedRegistrationWizard({ onSuccess }: DeedRegistrationWizardProp
 
               {step === 2 && (
                 <div className="space-y-6">
-                  <div className="space-y-2">
-                    <Label>Search Owner by NIC</Label>
+                  <div className="space-y-2 relative">
+                    <Label>Search Owner by NIC or Name</Label>
                     <div className="relative">
                       <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input
-                        placeholder="Enter NIC number..."
+                        placeholder="Enter NIC number or Name..."
                         className="pl-8"
                         value={ownerSearchQuery}
-                        onChange={(e) => setOwnerSearchQuery(e.target.value)}
+                        onChange={handleSearchChange}
+                        onFocus={() => {
+                          if (ownerSearchQuery && filteredOwners.length > 0) {
+                            setShowSuggestions(true);
+                          }
+                        }}
                       />
                     </div>
-                    {filteredOwners.length > 0 && (
-                      <div className="border rounded-md mt-2 max-h-40 overflow-y-auto">
+                    {showSuggestions && filteredOwners.length > 0 && (
+                      <div className="border rounded-md mt-1 max-h-40 overflow-y-auto absolute z-50 bg-background w-full shadow-md top-full">
                         {filteredOwners.map(owner => (
-                          <div 
-                            key={owner.nic} 
-                            className="p-2 hover:bg-muted cursor-pointer flex justify-between items-center"
+                          <div
+                            key={owner.nic}
+                            className="p-2 hover:bg-muted cursor-pointer flex justify-between items-center border-b last:border-0"
                             onClick={() => {
                               setSelectedOwner(owner);
                               setOwnerSearchQuery(owner.nic);
-                              setFilteredOwners([]);
+                              setShowSuggestions(false);
                             }}
                           >
-                            <span>{owner.fullName} ({owner.nic})</span>
+                            <div className="flex flex-col">
+                              <span className="font-medium">{owner.fullName}</span>
+                              <span className="text-xs text-muted-foreground">{owner.nic}</span>
+                            </div>
                             {selectedOwner?.nic === owner.nic && <CheckCircle2 className="h-4 w-4 text-primary" />}
                           </div>
                         ))}
@@ -296,8 +328,8 @@ export function DeedRegistrationWizard({ onSuccess }: DeedRegistrationWizardProp
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="deedType">Deed Type *</Label>
-                    <Select 
-                      value={deedData.deedType} 
+                    <Select
+                      value={deedData.deedType}
                       onValueChange={(value) => setDeedData(prev => ({ ...prev, deedType: value }))}
                     >
                       <SelectTrigger id="deedType">
@@ -326,7 +358,7 @@ export function DeedRegistrationWizard({ onSuccess }: DeedRegistrationWizardProp
                 <Button variant="outline" onClick={handleBack} disabled={step === 1}>
                   <ArrowLeft className="mr-2 h-4 w-4" /> Back
                 </Button>
-                
+
                 {step < 3 ? (
                   <Button onClick={handleNext}>
                     Next <ArrowRight className="ml-2 h-4 w-4" />

@@ -85,7 +85,36 @@ export async function getAllOwners(): Promise<Owner[]> {
   }
 }
 
+export async function searchOwners(query: string): Promise<Owner[]> {
+  try {
+    const response = await fetch(`${API_URL}/owners/search?q=${encodeURIComponent(query)}`);
+    if (!response.ok) throw new Error('Failed to search owners');
+    return response.json();
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
+}
+
 // --- Deed Management ---
+
+export async function getNextDeedId(previousDeedId?: string): Promise<string> {
+  try {
+    const url = previousDeedId 
+      ? `${API_URL}/deeds/next-id?previousDeedId=${previousDeedId}`
+      : `${API_URL}/deeds/next-id`;
+      
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Failed to fetch next deed ID');
+    const data = await response.json();
+    return data.nextId;
+  } catch (error) {
+    console.error(error);
+    // Fallback
+    if (previousDeedId) return `${previousDeedId}-01`;
+    return `D${Date.now().toString().slice(-3)}`;
+  }
+}
 
 export async function registerDeed(deed: Deed): Promise<Deed> {
   const response = await fetch(`${API_URL}/deeds`, {
