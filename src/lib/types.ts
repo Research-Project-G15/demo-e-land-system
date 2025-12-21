@@ -1,28 +1,30 @@
 export interface Land {
-  landExtent: string;
-  landLocation: string;
+  landNumber: string;
   district: string;
-  divisionalSecretariat: string;
-  gramaNiladhariDivision: string;
+  division: string;
+  area: string;
+  areaUnit: string;
+  mapReference: string;
 }
 
 export interface Owner {
-  fullName: string;
   nic: string;
-  previousOwner?: string;
+  fullName: string;
+  address: string;
+  contactNumber: string;
 }
 
 export type DeedStatus = 'ACTIVE' | 'TRANSFERRED';
 
 export interface Deed {
   deedNumber: string;
-  surveyPlanNumber: string;
+  landNumber: string; // Reference to Land
+  ownerNic: string; // Reference to Owner
   registrationDate: string;
-  notaryName: string;
-  owner: Owner;
-  land: Land;
+  deedType: string;
   status: DeedStatus;
-  previousDeedNumber?: string;
+  previousDeedNumber?: string; // For transfers
+  notes?: string;
 }
 
 export interface AuditLog {
