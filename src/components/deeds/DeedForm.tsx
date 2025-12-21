@@ -3,16 +3,15 @@ import { Deed } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { FileText, Save } from 'lucide-react';
+import { FileText, Save, RefreshCw } from 'lucide-react';
 
 interface DeedFormProps {
   onSubmit: (data: Deed) => Promise<void>;
   onCancel?: () => void;
   isLoading?: boolean;
-  initialData?: Partial<Deed>;
 }
 
-export function DeedForm({ onSubmit, onCancel, isLoading = false, initialData }: DeedFormProps) {
+export function DeedForm({ onSubmit, onCancel, isLoading = false }: DeedFormProps) {
   const [formData, setFormData] = useState<Deed>({
     deedNumber: '',
     landNumber: '',
@@ -20,8 +19,14 @@ export function DeedForm({ onSubmit, onCancel, isLoading = false, initialData }:
     registrationDate: new Date().toISOString().split('T')[0],
     deedType: '',
     status: 'ACTIVE',
-    ...initialData,
   });
+
+  const generateDeedId = () => {
+    const timestamp = Date.now().toString(36).toUpperCase();
+    const random = Math.random().toString(36).substring(2, 7).toUpperCase();
+    const newId = `DEED-${timestamp}-${random}`;
+    setFormData(prev => ({ ...prev, deedNumber: newId }));
+  };
 
   const handleChange = (field: keyof Deed) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, [field]: e.target.value }));
@@ -43,13 +48,24 @@ export function DeedForm({ onSubmit, onCancel, isLoading = false, initialData }:
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="deedNumber">Deed Number *</Label>
-            <Input
-              id="deedNumber"
-              value={formData.deedNumber}
-              onChange={handleChange('deedNumber')}
-              placeholder="e.g., D001"
-              required
-            />
+            <div className="flex gap-2">
+              <Input
+                id="deedNumber"
+                value={formData.deedNumber}
+                onChange={handleChange('deedNumber')}
+                placeholder="Generate Deed ID or enter manually"
+                required
+              />
+              <Button 
+                type="button" 
+                onClick={generateDeedId}
+                variant="outline"
+                size="icon"
+                title="Generate Deed ID"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
           
           <div>
