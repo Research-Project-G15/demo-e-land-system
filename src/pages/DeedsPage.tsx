@@ -5,9 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { getAllOwners, registerLand, registerDeed, getAllDeeds, getLand } from '@/lib/deedStorage';
+import { registerLand, registerDeed, registerOwner, getAllDeeds } from '@/lib/deedStorage';
 import { Land, Owner, Deed } from '@/lib/types';
-import { MapPin, User, FileText, Search, CheckCircle2, Save, Plus, List } from 'lucide-react';
+import { MapPin, User, FileText, Save, Plus, List } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -16,10 +16,6 @@ const DeedsPage = () => {
   const { toast } = useToast();
   const [showForm, setShowForm] = useState(false);
   const [deeds, setDeeds] = useState<Deed[]>([]);
-  const [owners, setOwners] = useState<Owner[]>([]);
-  const [filteredOwners, setFilteredOwners] = useState<Owner[]>([]);
-  const [ownerSearchQuery, setOwnerSearchQuery] = useState('');
-  const [selectedOwner, setSelectedOwner] = useState<Owner | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const [landData, setLandData] = useState<Land>({
@@ -29,6 +25,13 @@ const DeedsPage = () => {
     area: '',
     areaUnit: 'Perches',
     mapReference: '',
+  });
+
+  const [ownerData, setOwnerData] = useState<Owner>({
+    nic: '',
+    fullName: '',
+    address: '',
+    contactNumber: '',
   });
 
   const [deedData, setDeedData] = useState({
@@ -41,20 +44,8 @@ const DeedsPage = () => {
     loadData();
   }, []);
 
-  useEffect(() => {
-    if (ownerSearchQuery) {
-      setFilteredOwners(owners.filter(o => 
-        o.nic.toLowerCase().includes(ownerSearchQuery.toLowerCase()) ||
-        o.fullName.toLowerCase().includes(ownerSearchQuery.toLowerCase())
-      ));
-    } else {
-      setFilteredOwners([]);
-    }
-  }, [ownerSearchQuery, owners]);
-
   const loadData = () => {
     setDeeds(getAllDeeds());
-    setOwners(getAllOwners());
   };
 
   const generateDeedId = () => {
@@ -67,6 +58,10 @@ const DeedsPage = () => {
     setLandData(prev => ({ ...prev, [field]: e.target.value }));
   };
 
+  const handleOwnerChange = (field: keyof Owner) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setOwnerData(prev => ({ ...prev, [field]: e.target.value }));
+  };
+
   const resetForm = () => {
     setLandData({
       landNumber: '',
@@ -76,13 +71,17 @@ const DeedsPage = () => {
       areaUnit: 'Perches',
       mapReference: '',
     });
+    setOwnerData({
+      nic: '',
+      fullName: '',
+      address: '',
+      contactNumber: '',
+    });
     setDeedData({
       deedNumber: '',
       deedType: 'Sale',
       registrationDate: new Date().toISOString().split('T')[0],
     });
-    setSelectedOwner(null);
-    setOwnerSearchQuery('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -94,8 +93,8 @@ const DeedsPage = () => {
       if (!landData.landNumber || !landData.district || !landData.division || !landData.area || !landData.mapReference) {
         throw new Error("Please fill in all land details.");
       }
-      if (!selectedOwner) {
-        throw new Error("Please select an owner.");
+      if (!ownerData.nic || !ownerData.fullName || !ownerData.address || !ownerData.contactNumber) {
+        throw new Error("Please fill in all owner details.");
       }
       if (!deedData.deedType) {
         throw new Error("Please select a deed type.");
@@ -105,14 +104,21 @@ const DeedsPage = () => {
       try {
         registerLand(landData);
       } catch (e) {
-        console.log("Land might already exist", e);
+        // Land might already exist
+      }
+
+      // Register owner (ignore if exists)
+      try {
+        registerOwner(ownerData);
+      } catch (e) {
+        // Owner might already exist
       }
 
       // Register deed
       const finalDeed: Deed = {
         deedNumber: deedData.deedNumber || generateDeedId(),
         landNumber: landData.landNumber,
-        ownerNic: selectedOwner.nic,
+        ownerNic: ownerData.nic,
         registrationDate: deedData.registrationDate,
         deedType: deedData.deedType,
         status: 'ACTIVE',
@@ -247,55 +253,48 @@ const DeedsPage = () => {
                     <User className="h-5 w-5 text-primary" />
                     Owner Information
                   </h3>
-                  <div className="space-y-2">
-                    <Label>Search Owner by NIC or Name</Label>
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Enter NIC or name..."
-                        className="pl-9"
-                        value={ownerSearchQuery}
-                        onChange={(e) => setOwnerSearchQuery(e.target.value)}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="nic">NIC Number *</Label>
+                      <Input 
+                        id="nic" 
+                        value={ownerData.nic} 
+                        onChange={handleOwnerChange('nic')} 
+                        placeholder="e.g., 123456789V" 
+                        required
                       />
                     </div>
-                    {filteredOwners.length > 0 && (
-                      <div className="border rounded-md mt-2 max-h-40 overflow-y-auto">
-                        {filteredOwners.map(owner => (
-                          <div 
-                            key={owner.nic} 
-                            className="p-3 hover:bg-muted cursor-pointer flex justify-between items-center"
-                            onClick={() => {
-                              setSelectedOwner(owner);
-                              setOwnerSearchQuery(owner.nic);
-                              setFilteredOwners([]);
-                            }}
-                          >
-                            <span>{owner.fullName} ({owner.nic})</span>
-                            {selectedOwner?.nic === owner.nic && <CheckCircle2 className="h-4 w-4 text-primary" />}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  
-                  {selectedOwner && (
-                    <div className="bg-muted/50 p-4 rounded-lg border">
-                      <h4 className="font-semibold flex items-center gap-2 mb-2">
-                        <CheckCircle2 className="h-4 w-4 text-primary" />
-                        Selected Owner
-                      </h4>
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <span className="text-muted-foreground">Name:</span>
-                        <span>{selectedOwner.fullName}</span>
-                        <span className="text-muted-foreground">NIC:</span>
-                        <span>{selectedOwner.nic}</span>
-                        <span className="text-muted-foreground">Address:</span>
-                        <span>{selectedOwner.address}</span>
-                        <span className="text-muted-foreground">Contact:</span>
-                        <span>{selectedOwner.contactNumber}</span>
-                      </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="fullName">Full Name *</Label>
+                      <Input 
+                        id="fullName" 
+                        value={ownerData.fullName} 
+                        onChange={handleOwnerChange('fullName')} 
+                        placeholder="e.g., John Doe" 
+                        required
+                      />
                     </div>
-                  )}
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="address">Address *</Label>
+                      <Input 
+                        id="address" 
+                        value={ownerData.address} 
+                        onChange={handleOwnerChange('address')} 
+                        placeholder="e.g., 123 Main St, Colombo" 
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="contactNumber">Contact Number *</Label>
+                      <Input 
+                        id="contactNumber" 
+                        value={ownerData.contactNumber} 
+                        onChange={handleOwnerChange('contactNumber')} 
+                        placeholder="e.g., 0771234567" 
+                        required
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 {/* Deed Information */}
