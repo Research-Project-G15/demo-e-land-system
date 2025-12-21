@@ -5,20 +5,22 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { FileText, Save, RefreshCw } from 'lucide-react';
 
-interface DeedFormProps {
+export interface DeedFormProps {
   onSubmit: (data: Deed) => Promise<void>;
   onCancel?: () => void;
   isLoading?: boolean;
+  initialData?: Partial<Deed>;
 }
 
-export function DeedForm({ onSubmit, onCancel, isLoading = false }: DeedFormProps) {
+export function DeedForm({ onSubmit, onCancel, isLoading = false, initialData }: DeedFormProps) {
   const [formData, setFormData] = useState<Deed>({
     deedNumber: '',
-    landNumber: '',
+    landNumber: initialData?.landNumber || '',
     ownerNic: '',
     registrationDate: new Date().toISOString().split('T')[0],
     deedType: '',
     status: 'ACTIVE',
+    ...initialData,
   });
 
   const generateDeedId = () => {
