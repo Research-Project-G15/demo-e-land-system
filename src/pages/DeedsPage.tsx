@@ -3,11 +3,10 @@ import { Header } from '@/components/layout/Header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { registerLand, registerDeed, registerOwner, getAllDeeds } from '@/lib/deedStorage';
+import { registerDeed, getAllDeeds, searchDeeds, initializeSampleData } from '@/lib/deedStorage';
 import { Land, Owner, Deed } from '@/lib/types';
-import { MapPin, User, FileText, Save, Plus, List } from 'lucide-react';
+import { MapPin, User, FileText, Save, Plus, List, Search } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -16,72 +15,55 @@ const DeedsPage = () => {
   const { toast } = useToast();
   const [showForm, setShowForm] = useState(false);
   const [deeds, setDeeds] = useState<Deed[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const [landData, setLandData] = useState<Land>({
-    landNumber: '',
-    district: '',
-    division: '',
-    area: '',
-    areaUnit: 'Perches',
-    mapReference: '',
-  });
+  // Form state
+  const [deedNumber, setDeedNumber] = useState('');
+  const [surveyPlanNumber, setSurveyPlanNumber] = useState('');
+  const [registrationDate, setRegistrationDate] = useState(new Date().toISOString().split('T')[0]);
+  const [notaryName, setNotaryName] = useState('');
 
-  const [ownerData, setOwnerData] = useState<Owner>({
-    nic: '',
-    fullName: '',
-    address: '',
-    contactNumber: '',
-  });
+  const [ownerFullName, setOwnerFullName] = useState('');
+  const [ownerNic, setOwnerNic] = useState('');
+  const [previousOwner, setPreviousOwner] = useState('');
 
-  const [deedData, setDeedData] = useState({
-    deedNumber: '',
-    deedType: 'Sale',
-    registrationDate: new Date().toISOString().split('T')[0],
-  });
+  const [landExtent, setLandExtent] = useState('');
+  const [landLocation, setLandLocation] = useState('');
+  const [district, setDistrict] = useState('');
+  const [divisionalSecretariat, setDivisionalSecretariat] = useState('');
+  const [gramaNiladhariDivision, setGramaNiladhariDivision] = useState('');
 
   useEffect(() => {
+    initializeSampleData();
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      setDeeds(searchDeeds(searchQuery));
+    } else {
+      setDeeds(getAllDeeds());
+    }
+  }, [searchQuery]);
 
   const loadData = () => {
     setDeeds(getAllDeeds());
   };
 
-  const generateDeedId = () => {
-    const timestamp = Date.now().toString(36).toUpperCase();
-    const random = Math.random().toString(36).substring(2, 7).toUpperCase();
-    return `DEED-${timestamp}-${random}`;
-  };
-
-  const handleLandChange = (field: keyof Land) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setLandData(prev => ({ ...prev, [field]: e.target.value }));
-  };
-
-  const handleOwnerChange = (field: keyof Owner) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setOwnerData(prev => ({ ...prev, [field]: e.target.value }));
-  };
-
   const resetForm = () => {
-    setLandData({
-      landNumber: '',
-      district: '',
-      division: '',
-      area: '',
-      areaUnit: 'Perches',
-      mapReference: '',
-    });
-    setOwnerData({
-      nic: '',
-      fullName: '',
-      address: '',
-      contactNumber: '',
-    });
-    setDeedData({
-      deedNumber: '',
-      deedType: 'Sale',
-      registrationDate: new Date().toISOString().split('T')[0],
-    });
+    setDeedNumber('');
+    setSurveyPlanNumber('');
+    setRegistrationDate(new Date().toISOString().split('T')[0]);
+    setNotaryName('');
+    setOwnerFullName('');
+    setOwnerNic('');
+    setPreviousOwner('');
+    setLandExtent('');
+    setLandLocation('');
+    setDistrict('');
+    setDivisionalSecretariat('');
+    setGramaNiladhariDivision('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -89,46 +71,46 @@ const DeedsPage = () => {
     setIsLoading(true);
 
     try {
-      // Validate
-      if (!landData.landNumber || !landData.district || !landData.division || !landData.area || !landData.mapReference) {
+      // Validate required fields
+      if (!deedNumber || !surveyPlanNumber || !registrationDate || !notaryName) {
+        throw new Error("Please fill in all deed information fields.");
+      }
+      if (!ownerFullName || !ownerNic) {
+        throw new Error("Please fill in owner full name and NIC.");
+      }
+      if (!landExtent || !landLocation || !district || !divisionalSecretariat || !gramaNiladhariDivision) {
         throw new Error("Please fill in all land details.");
       }
-      if (!ownerData.nic || !ownerData.fullName || !ownerData.address || !ownerData.contactNumber) {
-        throw new Error("Please fill in all owner details.");
-      }
-      if (!deedData.deedType) {
-        throw new Error("Please select a deed type.");
-      }
 
-      // Register land (ignore if exists)
-      try {
-        registerLand(landData);
-      } catch (e) {
-        // Land might already exist
-      }
+      const owner: Owner = {
+        fullName: ownerFullName,
+        nic: ownerNic,
+        previousOwner: previousOwner || undefined,
+      };
 
-      // Register owner (ignore if exists)
-      try {
-        registerOwner(ownerData);
-      } catch (e) {
-        // Owner might already exist
-      }
+      const land: Land = {
+        landExtent,
+        landLocation,
+        district,
+        divisionalSecretariat,
+        gramaNiladhariDivision,
+      };
 
-      // Register deed
-      const finalDeed: Deed = {
-        deedNumber: deedData.deedNumber || generateDeedId(),
-        landNumber: landData.landNumber,
-        ownerNic: ownerData.nic,
-        registrationDate: deedData.registrationDate,
-        deedType: deedData.deedType,
+      const deed: Deed = {
+        deedNumber,
+        surveyPlanNumber,
+        registrationDate,
+        notaryName,
+        owner,
+        land,
         status: 'ACTIVE',
       };
 
-      registerDeed(finalDeed);
+      registerDeed(deed);
 
       toast({
         title: "Success",
-        description: `Deed ${finalDeed.deedNumber} registered successfully.`,
+        description: `Deed ${deedNumber} registered successfully.`,
       });
 
       resetForm();
@@ -178,69 +160,50 @@ const DeedsPage = () => {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-8">
-                {/* Land Information */}
+                {/* Deed Information */}
                 <div className="space-y-4">
                   <h3 className="font-semibold flex items-center gap-2 text-lg">
-                    <MapPin className="h-5 w-5 text-primary" />
-                    Land Information
+                    <FileText className="h-5 w-5 text-primary" />
+                    Deed Information
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="landNumber">Land Number *</Label>
+                      <Label htmlFor="deedNumber">Deed Number *</Label>
                       <Input 
-                        id="landNumber" 
-                        value={landData.landNumber} 
-                        onChange={handleLandChange('landNumber')} 
-                        placeholder="e.g., L001" 
+                        id="deedNumber" 
+                        value={deedNumber} 
+                        onChange={(e) => setDeedNumber(e.target.value)} 
+                        placeholder="e.g., D-2024-001" 
                         required
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="district">District *</Label>
+                      <Label htmlFor="surveyPlanNumber">Survey Plan Number *</Label>
                       <Input 
-                        id="district" 
-                        value={landData.district} 
-                        onChange={handleLandChange('district')} 
-                        placeholder="e.g., Colombo" 
+                        id="surveyPlanNumber" 
+                        value={surveyPlanNumber} 
+                        onChange={(e) => setSurveyPlanNumber(e.target.value)} 
+                        placeholder="e.g., SP-1234" 
                         required
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="division">Division *</Label>
+                      <Label htmlFor="registrationDate">Registration Date *</Label>
                       <Input 
-                        id="division" 
-                        value={landData.division} 
-                        onChange={handleLandChange('division')} 
-                        placeholder="e.g., Colombo 01" 
+                        id="registrationDate" 
+                        type="date" 
+                        value={registrationDate} 
+                        onChange={(e) => setRegistrationDate(e.target.value)} 
                         required
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="area">Area *</Label>
+                      <Label htmlFor="notaryName">Notary Name *</Label>
                       <Input 
-                        id="area" 
-                        value={landData.area} 
-                        onChange={handleLandChange('area')} 
-                        placeholder="e.g., 10.5" 
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="areaUnit">Area Unit</Label>
-                      <Input 
-                        id="areaUnit" 
-                        value={landData.areaUnit} 
-                        onChange={handleLandChange('areaUnit')} 
-                        placeholder="e.g., Perches" 
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="mapReference">Map Reference *</Label>
-                      <Input 
-                        id="mapReference" 
-                        value={landData.mapReference} 
-                        onChange={handleLandChange('mapReference')} 
-                        placeholder="e.g., M-101" 
+                        id="notaryName" 
+                        value={notaryName} 
+                        onChange={(e) => setNotaryName(e.target.value)} 
+                        placeholder="e.g., Mr. K. Silva" 
                         required
                       />
                     </div>
@@ -255,92 +218,91 @@ const DeedsPage = () => {
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="nic">NIC Number *</Label>
+                      <Label htmlFor="ownerFullName">Owner Full Name *</Label>
                       <Input 
-                        id="nic" 
-                        value={ownerData.nic} 
-                        onChange={handleOwnerChange('nic')} 
+                        id="ownerFullName" 
+                        value={ownerFullName} 
+                        onChange={(e) => setOwnerFullName(e.target.value)} 
+                        placeholder="e.g., John Perera" 
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="ownerNic">Owner NIC *</Label>
+                      <Input 
+                        id="ownerNic" 
+                        value={ownerNic} 
+                        onChange={(e) => setOwnerNic(e.target.value)} 
                         placeholder="e.g., 123456789V" 
                         required
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="fullName">Full Name *</Label>
-                      <Input 
-                        id="fullName" 
-                        value={ownerData.fullName} 
-                        onChange={handleOwnerChange('fullName')} 
-                        placeholder="e.g., John Doe" 
-                        required
-                      />
-                    </div>
                     <div className="space-y-2 md:col-span-2">
-                      <Label htmlFor="address">Address *</Label>
+                      <Label htmlFor="previousOwner">Previous Owner</Label>
                       <Input 
-                        id="address" 
-                        value={ownerData.address} 
-                        onChange={handleOwnerChange('address')} 
-                        placeholder="e.g., 123 Main St, Colombo" 
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="contactNumber">Contact Number *</Label>
-                      <Input 
-                        id="contactNumber" 
-                        value={ownerData.contactNumber} 
-                        onChange={handleOwnerChange('contactNumber')} 
-                        placeholder="e.g., 0771234567" 
-                        required
+                        id="previousOwner" 
+                        value={previousOwner} 
+                        onChange={(e) => setPreviousOwner(e.target.value)} 
+                        placeholder="e.g., James Fernando (optional)" 
                       />
                     </div>
                   </div>
                 </div>
 
-                {/* Deed Information */}
+                {/* Land Details */}
                 <div className="space-y-4">
                   <h3 className="font-semibold flex items-center gap-2 text-lg">
-                    <FileText className="h-5 w-5 text-primary" />
-                    Deed Information
+                    <MapPin className="h-5 w-5 text-primary" />
+                    Land Details
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="deedNumber">Deed Number (Optional)</Label>
+                      <Label htmlFor="landExtent">Land Extent *</Label>
                       <Input 
-                        id="deedNumber" 
-                        value={deedData.deedNumber} 
-                        onChange={(e) => setDeedData(prev => ({ ...prev, deedNumber: e.target.value }))}
-                        placeholder="Auto-generated if empty" 
+                        id="landExtent" 
+                        value={landExtent} 
+                        onChange={(e) => setLandExtent(e.target.value)} 
+                        placeholder="e.g., 10 Perches" 
+                        required
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="deedType">Deed Type *</Label>
-                      <Select 
-                        value={deedData.deedType} 
-                        onValueChange={(value) => setDeedData(prev => ({ ...prev, deedType: value }))}
-                      >
-                        <SelectTrigger id="deedType">
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Sale">Sale</SelectItem>
-                          <SelectItem value="Gift">Gift</SelectItem>
-                          <SelectItem value="Inheritance">Inheritance</SelectItem>
-                          <SelectItem value="Exchange">Exchange</SelectItem>
-                          <SelectItem value="Donation">Donation</SelectItem>
-                          <SelectItem value="Partition">Partition</SelectItem>
-                          <SelectItem value="Lease">Lease</SelectItem>
-                          <SelectItem value="Mortgage">Mortgage</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Label htmlFor="landLocation">Land Location *</Label>
+                      <Input 
+                        id="landLocation" 
+                        value={landLocation} 
+                        onChange={(e) => setLandLocation(e.target.value)} 
+                        placeholder="e.g., Kollupitiya" 
+                        required
+                      />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="registrationDate">Registration Date *</Label>
+                      <Label htmlFor="district">District *</Label>
                       <Input 
-                        id="registrationDate" 
-                        type="date" 
-                        value={deedData.registrationDate} 
-                        onChange={(e) => setDeedData(prev => ({ ...prev, registrationDate: e.target.value }))}
+                        id="district" 
+                        value={district} 
+                        onChange={(e) => setDistrict(e.target.value)} 
+                        placeholder="e.g., Colombo" 
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="divisionalSecretariat">Divisional Secretariat *</Label>
+                      <Input 
+                        id="divisionalSecretariat" 
+                        value={divisionalSecretariat} 
+                        onChange={(e) => setDivisionalSecretariat(e.target.value)} 
+                        placeholder="e.g., Colombo" 
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="gramaNiladhariDivision">Grama Niladhari Division *</Label>
+                      <Input 
+                        id="gramaNiladhariDivision" 
+                        value={gramaNiladhariDivision} 
+                        onChange={(e) => setGramaNiladhariDivision(e.target.value)} 
+                        placeholder="e.g., Kollupitiya West" 
                         required
                       />
                     </div>
@@ -363,22 +325,35 @@ const DeedsPage = () => {
         ) : (
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <List className="h-5 w-5 text-primary" />
-                Registered Deeds
-              </CardTitle>
-              <CardDescription>
-                View all registered deed records.
-              </CardDescription>
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <List className="h-5 w-5 text-primary" />
+                    Registered Deeds
+                  </CardTitle>
+                  <CardDescription>
+                    View all registered deed records.
+                  </CardDescription>
+                </div>
+                <div className="relative w-full md:w-80">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by Deed Number or Owner NIC..."
+                    className="pl-9"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Deed Number</TableHead>
-                    <TableHead>Land Number</TableHead>
+                    <TableHead>Owner Name</TableHead>
                     <TableHead>Owner NIC</TableHead>
-                    <TableHead>Type</TableHead>
+                    <TableHead>District</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Status</TableHead>
                   </TableRow>
@@ -387,9 +362,9 @@ const DeedsPage = () => {
                   {deeds.map((deed) => (
                     <TableRow key={deed.deedNumber}>
                       <TableCell className="font-medium">{deed.deedNumber}</TableCell>
-                      <TableCell>{deed.landNumber}</TableCell>
-                      <TableCell>{deed.ownerNic}</TableCell>
-                      <TableCell>{deed.deedType}</TableCell>
+                      <TableCell>{deed.owner.fullName}</TableCell>
+                      <TableCell>{deed.owner.nic}</TableCell>
+                      <TableCell>{deed.land.district}</TableCell>
                       <TableCell>{new Date(deed.registrationDate).toLocaleDateString()}</TableCell>
                       <TableCell>
                         <Badge variant={deed.status === 'ACTIVE' ? 'default' : 'secondary'}>
@@ -401,7 +376,7 @@ const DeedsPage = () => {
                   {deeds.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                        No deeds registered yet. Click "Register New Deed" to add one.
+                        {searchQuery ? 'No deeds found matching your search.' : 'No deeds registered yet. Click "Register New Deed" to add one.'}
                       </TableCell>
                     </TableRow>
                   )}
