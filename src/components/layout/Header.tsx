@@ -1,12 +1,13 @@
-import { Shield, Database, FileCheck, LogOut, LogIn } from 'lucide-react';
+import { Database, FileCheck, LogOut, LogIn, Home } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import governmentEmblem from '@/assets/government-emblem.png';
 
 const navItems = [
-  { href: '/', label: 'Dashboard', icon: Shield },
+  { href: '/', label: 'Home', icon: Home },
   { href: '/deeds', label: 'Deed Records', icon: Database },
   { href: '/verify', label: 'Search', icon: FileCheck },
 ];
@@ -23,23 +24,32 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
-      <div className="container flex h-16 items-center justify-between">
-        <Link to="/" className="flex items-center gap-3 group">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-md group-hover:shadow-lg transition-shadow">
-            <Shield className="h-5 w-5" />
-          </div>
+    <header className="sticky top-0 z-50 w-full border-b border-border bg-card shadow-sm">
+      {/* Top government banner */}
+      <div className="bg-primary text-primary-foreground py-1">
+        <div className="container text-center text-xs font-medium tracking-wide">
+          Government of Sri Lanka — Official Land Registry Portal
+        </div>
+      </div>
+      
+      <div className="container flex h-20 items-center justify-between">
+        <Link to="/" className="flex items-center gap-4 group">
+          <img 
+            src={governmentEmblem} 
+            alt="Government of Sri Lanka Emblem" 
+            className="h-14 w-auto"
+          />
           <div className="flex flex-col">
-            <span className="font-display text-lg font-semibold text-foreground leading-tight">
-              Land Deed Verification
+            <span className="font-display text-xl font-semibold text-foreground leading-tight">
+              Land Registry Department
             </span>
             <span className="text-xs text-muted-foreground">
-              Blockchain-Based Registry System
+              Ministry of Lands
             </span>
           </div>
         </Link>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
           <nav className="flex items-center gap-1">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -50,10 +60,10 @@ export function Header() {
                   key={item.href}
                   to={item.href}
                   className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+                    "flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200",
                     isActive
-                      ? "bg-primary text-primary-foreground shadow-md"
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
                   )}
                 >
                   <Icon className="h-4 w-4" />
@@ -65,23 +75,23 @@ export function Header() {
 
           {user ? (
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
               onClick={handleSignOut}
-              className="text-muted-foreground hover:text-foreground"
+              className="border-border"
             >
               <LogOut className="h-4 w-4 mr-2" />
               <span className="hidden sm:inline">Sign Out</span>
             </Button>
           ) : (
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
               onClick={() => navigate('/auth')}
-              className="text-muted-foreground hover:text-foreground"
+              className="border-border"
             >
               <LogIn className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">Sign In</span>
+              <span className="hidden sm:inline">Admin Login</span>
             </Button>
           )}
         </div>
