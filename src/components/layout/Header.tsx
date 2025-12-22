@@ -1,6 +1,9 @@
-import { Shield, Database, FileCheck, Link2 } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { Shield, Database, FileCheck, LogOut, LogIn } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: Shield },
@@ -10,6 +13,14 @@ const navItems = [
 
 export function Header() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+    toast.success('Signed out successfully');
+    navigate('/');
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
@@ -28,28 +39,52 @@ export function Header() {
           </div>
         </Link>
 
-        <nav className="flex items-center gap-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.href;
-            
-            return (
-              <Link
-                key={item.href}
-                to={item.href}
-                className={cn(
-                  "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
-                  isActive
-                    ? "bg-primary text-primary-foreground shadow-md"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                <span className="hidden sm:inline">{item.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
+        <div className="flex items-center gap-4">
+          <nav className="flex items-center gap-1">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = location.pathname === item.href;
+              
+              return (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+                    isActive
+                      ? "bg-primary text-primary-foreground shadow-md"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span className="hidden sm:inline">{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+
+          {user ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleSignOut}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Sign Out</span>
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/auth')}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <LogIn className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Sign In</span>
+            </Button>
+          )}
+        </div>
       </div>
     </header>
   );
