@@ -144,7 +144,7 @@ export default function AuthPage() {
       {/* Footer */}
       <div className="bg-muted/50 border-t border-border py-4">
         <div className="container text-center text-xs text-muted-foreground">
-          © 2024 Land Registry Department, Government of Sri Lanka
+          © 2025 Land Registry Department, Government of Sri Lanka
         </div>
       </div>
     </div>
