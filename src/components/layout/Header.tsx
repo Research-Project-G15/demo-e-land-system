@@ -1,4 +1,4 @@
-import { Database, FileCheck, LogOut, LogIn, Home } from 'lucide-react';
+import { Database, FileCheck, LogOut, LogIn, Home, Shield } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
