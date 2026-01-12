@@ -180,7 +180,7 @@ const Index = () => {
             </div>
           </div>
           <div className="border-t border-border pt-6 text-center text-sm text-muted-foreground">
-            <p>© 2024 Land Registry Department, Government of Sri Lanka. All rights reserved.</p>
+            <p>© 2025 Land Registry Department, Government of Sri Lanka. All rights reserved.</p>
           </div>
         </div>
       </footer>
