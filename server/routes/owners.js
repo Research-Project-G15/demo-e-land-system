@@ -84,9 +84,10 @@ router.post('/', async (req, res) => {
       [nic, fullName, address, contactNumber]
     );
 
+    const user = req.body.username || 'Admin';
     await db.query(
       'INSERT INTO audit_logs ("user", action, details) VALUES ($1, $2, $3)',
-      ['Admin', 'CREATE', `Registered owner: ${fullName} (${nic})`]
+      [user, 'CREATE', `Registered owner: ${fullName} (${nic})`]
     );
 
     const row = newOwner.rows[0];

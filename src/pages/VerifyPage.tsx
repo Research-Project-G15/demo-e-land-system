@@ -8,7 +8,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getLand, getDeed, getOwnershipHistory, getOwner, searchDeeds } from '@/lib/deedStorage';
 import { Land, Deed, Owner } from '@/lib/types';
-import { Search, MapPin, FileText, History, ArrowRightLeft, Loader2 } from 'lucide-react';
+import { Search, MapPin, FileText, History, Edit, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/components/ui/use-toast';
@@ -36,7 +36,7 @@ const VerifyPage = () => {
     if (searchType === 'land') {
       const land = await getLand(searchQuery);
       if (land) {
-        const history = await getOwnershipHistory(searchQuery);
+        const history = await getOwnershipHistory(searchQuery, user?.username);
         const currentDeed = history.find(d => d.status === 'ACTIVE');
         let currentOwner: Owner | undefined;
         if (currentDeed) {
@@ -54,7 +54,7 @@ const VerifyPage = () => {
       if (deed) {
         const owner = await getOwner(deed.ownerNic);
         const land = await getLand(deed.landNumber);
-        const history = await getOwnershipHistory(deed.landNumber);
+        const history = await getOwnershipHistory(deed.landNumber, user?.username);
         setDeedResult({ deed, owner, land, history });
       } else {
         setError(`Deed with number ${searchQuery} not found.`);
@@ -126,10 +126,10 @@ const VerifyPage = () => {
                     <Button 
                       variant="outline" 
                       className="gap-2"
-                      onClick={() => navigate(`/transfer/${landResult.currentDeed!.deedNumber}`)}
+                      onClick={() => navigate(`/edit/${landResult.currentDeed!.deedNumber}`)}
                     >
-                      <ArrowRightLeft className="h-4 w-4" />
-                      Transfer Ownership
+                      <Edit className="h-4 w-4" />
+                      Edit Deed
                     </Button>
                   )}
                 </CardHeader>
@@ -280,10 +280,10 @@ const VerifyPage = () => {
                   <Button 
                     variant="outline" 
                     className="gap-2"
-                    onClick={() => navigate(`/transfer/${deedResult.deed.deedNumber}`)}
+                    onClick={() => navigate(`/edit/${deedResult.deed.deedNumber}`)}
                   >
-                    <ArrowRightLeft className="h-4 w-4" />
-                    Transfer Ownership
+                    <Edit className="h-4 w-4" />
+                    Edit Deed
                   </Button>
                 )}
               </CardHeader>

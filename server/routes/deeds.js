@@ -136,10 +136,20 @@ router.get('/:id', async (req, res) => {
 router.get('/history/:landNumber', async (req, res) => {
   try {
     const { landNumber } = req.params;
+    const { username } = req.query;
+
     const result = await db.query(
       'SELECT * FROM deeds WHERE land_number = $1 ORDER BY registration_date DESC',
       [landNumber]
     );
+
+    if (username) {
+       await db.query(
+        'INSERT INTO audit_logs ("user", action, details) VALUES ($1, $2, $3)',
+        [username, 'SEARCH', `Searched deed history for land: ${landNumber}`]
+      );
+    }
+
     res.json(result.rows.map(mapDeed));
   } catch (err) {
     console.error(err.message);
@@ -192,67 +202,44 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Transfer Ownership
-router.post('/transfer', async (req, res) => {
+// Transfer Ownership route removed as per request
+// router.post('/transfer', async (req, res) => { ... });
+
+// Update deed
+router.put('/:id', async (req, res) => {
   const client = await db.pool.connect();
   try {
     await client.query('BEGIN');
-    const { oldDeedNumber, newDeedDetails } = req.body;
-    // newDeedDetails contains: deedNumber, landNumber, ownerNic, registrationDate, deedType, notes
+    const { id } = req.params;
+    const { landNumber, ownerNic, registrationDate, deedType, status, notes, username } = req.body;
 
-    // 1. Get Old Deed
-    const oldDeedResult = await client.query('SELECT * FROM deeds WHERE deed_number = $1', [oldDeedNumber]);
-    if (oldDeedResult.rows.length === 0) {
-      throw new Error('Old deed not found');
-    }
-    const oldDeed = oldDeedResult.rows[0];
-
-    if (oldDeed.status !== 'ACTIVE') {
-      throw new Error('Old deed is not active');
+    // Validate existence
+    const check = await client.query('SELECT * FROM deeds WHERE deed_number = $1', [id]);
+    if (check.rows.length === 0) {
+      return res.status(404).json({ msg: 'Deed not found' });
     }
 
-    // 2. Update Old Deed Status
-    await client.query('UPDATE deeds SET status = $1 WHERE deed_number = $2', ['TRANSFERRED', oldDeedNumber]);
-
-    // 3. Create New Deed
-    const { deedNumber, landNumber, ownerNic, registrationDate, deedType, notes } = newDeedDetails;
-
-    // Validate New Owner
-    const ownerCheck = await client.query('SELECT * FROM owners WHERE nic = $1', [ownerNic]);
-    if (ownerCheck.rows.length === 0) throw new Error('New owner does not exist');
-
-    const newDeed = await client.query(
-      `INSERT INTO deeds 
-      (deed_number, land_number, owner_nic, registration_date, deed_type, status, previous_deed_number, previous_owner_nic, previous_registration_date, notes) 
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
-      [
-        deedNumber, 
-        landNumber, 
-        ownerNic, 
-        registrationDate, 
-        deedType, 
-        'ACTIVE', 
-        oldDeedNumber, 
-        oldDeed.owner_nic, 
-        oldDeed.registration_date,
-        notes
-      ]
+    // Update Deed
+    const update = await client.query(
+      `UPDATE deeds 
+       SET land_number = $1, owner_nic = $2, registration_date = $3, deed_type = $4, status = $5, notes = $6
+       WHERE deed_number = $7 RETURNING *`,
+      [landNumber, ownerNic, registrationDate, deedType, status, notes, id]
     );
-    // Get username
-    const user = req.body.username || 'Admin';
 
+    // Record Audit Log
+    const user = username || 'Admin';
     await client.query(
       'INSERT INTO audit_logs ("user", action, details) VALUES ($1, $2, $3)',
-      [user, 'TRANSFER', `Transferred ownership from deed ${oldDeedNumber} to ${deedNumber}`]
+      [user, 'UPDATE', `Updated deed details for ${id}`]
     );
 
     await client.query('COMMIT');
-    res.json(mapDeed(newDeed.rows[0]));
-
+    res.json(mapDeed(update.rows[0]));
   } catch (err) {
     await client.query('ROLLBACK');
     console.error(err.message);
-    res.status(400).json({ msg: err.message });
+    res.status(500).send('Server Error');
   } finally {
     client.release();
   }

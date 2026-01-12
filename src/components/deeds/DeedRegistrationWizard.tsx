@@ -143,7 +143,7 @@ export function DeedRegistrationWizard({ onSuccess }: DeedRegistrationWizardProp
       // The requirement says "Land & Deed Registration", implying both.
 
       try {
-        await registerLand(landData);
+        await registerLand(landData, user?.username);
       } catch (e) {
         // Ignore if land already exists? Or fail? 
         // If land exists, we probably just want to link the deed to it.
@@ -155,9 +155,9 @@ export function DeedRegistrationWizard({ onSuccess }: DeedRegistrationWizardProp
       try {
         const existing = await getOwner(ownerFormData.nic);
         if (!existing) {
-          await registerOwner(ownerFormData);
+          await registerOwner(ownerFormData, user?.username);
         } else {
-          // If expecting an update, we would do it here. 
+          // If expecting an update, we would do it here.  
           // Currently we just use the existing owner linkage.
           // Ideally we warn if details mismatch, but for now we assume linkage by NIC is primary.
         }

@@ -8,7 +8,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Index from "./pages/Index";
 import DeedsPage from "./pages/DeedsPage";
 import VerifyPage from "./pages/VerifyPage";
-import TransferOwnershipPage from "./pages/TransferOwnershipPage";
+import EditDeedPage from "./pages/EditDeedPage";
 import AuthPage from "./pages/AuthPage";
 import NotFound from "./pages/NotFound";
 
@@ -26,7 +26,7 @@ const App = () => (
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/deeds" element={<ProtectedRoute><DeedsPage /></ProtectedRoute>} />
             <Route path="/verify" element={<ProtectedRoute><VerifyPage /></ProtectedRoute>} />
-            <Route path="/transfer/:deedNumber" element={<ProtectedRoute><TransferOwnershipPage /></ProtectedRoute>} />
+            <Route path="/edit/:deedNumber" element={<ProtectedRoute><EditDeedPage /></ProtectedRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

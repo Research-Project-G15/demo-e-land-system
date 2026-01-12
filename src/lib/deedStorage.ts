@@ -11,11 +11,12 @@ export async function getAuditLogs(): Promise<AuditLog[]> {
 
 // --- Land Management ---
 
-export async function registerLand(land: Land): Promise<Land> {
+export async function registerLand(land: Land, username?: string): Promise<Land> {
+  const body = username ? { ...land, username } : land;
   const response = await fetch(`${API_URL}/lands`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(land),
+    body: JSON.stringify(body),
   });
   if (!response.ok) {
     const error = await response.json();
@@ -49,11 +50,12 @@ export async function getAllLands(): Promise<Land[]> {
 
 // --- Owner Management ---
 
-export async function registerOwner(owner: Owner): Promise<Owner> {
+export async function registerOwner(owner: Owner, username?: string): Promise<Owner> {
+  const body = username ? { ...owner, username } : owner;
   const response = await fetch(`${API_URL}/owners`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(owner),
+    body: JSON.stringify(body),
   });
   if (!response.ok) {
     const error = await response.json();
@@ -130,19 +132,8 @@ export async function registerDeed(deed: Deed, username?: string): Promise<Deed>
   return response.json();
 }
 
-export async function transferOwnership(oldDeedNumber: string, newDeedDetails: Omit<Deed, 'status' | 'previousDeedNumber'>, username?: string): Promise<Deed> {
-  const body = username ? { oldDeedNumber, newDeedDetails, username } : { oldDeedNumber, newDeedDetails };
-  const response = await fetch(`${API_URL}/deeds/transfer`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.msg || 'Failed to transfer ownership');
-  }
-  return response.json();
-}
+// Transfer function removed
+// export async function transferOwnership(...) { ... }
 
 export async function getDeed(deedNumber: string, username?: string): Promise<Deed | undefined> {
   try {
@@ -174,6 +165,20 @@ export async function getDeed(deedNumber: string, username?: string): Promise<De
   }
 }
 
+export async function updateDeed(deed: Deed, username?: string): Promise<Deed> {
+  const body = username ? { ...deed, username } : deed;
+  const response = await fetch(`${API_URL}/deeds/${deed.deedNumber}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.msg || 'Failed to update deed');
+  }
+  return response.json();
+}
+
 export async function searchDeeds(query: string, username?: string): Promise<Deed[]> {
     try {
         let url = `${API_URL}/deeds/search?q=${encodeURIComponent(query)}`;
@@ -201,9 +206,13 @@ export async function getAllDeeds(): Promise<Deed[]> {
   }
 }
 
-export async function getOwnershipHistory(landNumber: string): Promise<Deed[]> {
+export async function getOwnershipHistory(landNumber: string, username?: string): Promise<Deed[]> {
   try {
-    const response = await fetch(`${API_URL}/deeds/history/${landNumber}`);
+    let url = `${API_URL}/deeds/history/${landNumber}`;
+    if (username) {
+        url += `?username=${encodeURIComponent(username)}`;
+    }
+    const response = await fetch(url);
     if (!response.ok) throw new Error('Failed to fetch history');
     return response.json();
   } catch (error) {

@@ -9,7 +9,6 @@ import { Deed, AuditLog } from '@/lib/types';
 import { 
   Database, 
   CheckCircle2, 
-  AlertTriangle, 
   Plus,
   FileSearch,
   Phone,
@@ -40,7 +39,6 @@ const Index = () => {
   }, []);
 
   const activeCount = deeds.filter(d => d.status === 'ACTIVE').length;
-  const transferredCount = deeds.filter(d => d.status === 'TRANSFERRED').length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -97,13 +95,6 @@ const Index = () => {
             description="Currently active ownerships"
             icon={CheckCircle2}
             variant="success"
-          />
-          <StatsCard
-            title="Transferred"
-            value={transferredCount}
-            description="Ownership transferred"
-            icon={AlertTriangle}
-            variant="warning"
           />
         </div>
 

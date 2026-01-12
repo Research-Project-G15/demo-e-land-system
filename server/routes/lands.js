@@ -68,9 +68,10 @@ router.post('/', async (req, res) => {
     );
 
     // Log action
+    const user = req.body.username || 'Admin';
     await db.query(
       'INSERT INTO audit_logs ("user", action, details) VALUES ($1, $2, $3)',
-      ['Admin', 'CREATE', `Registered land: ${landNumber}`]
+      [user, 'CREATE', `Registered land: ${landNumber}`]
     );
 
     const row = newLand.rows[0];
