@@ -28,6 +28,7 @@ export function Header() {
       {/* Top government banner */}
       <div className="bg-primary text-primary-foreground py-1">
         <div className="container text-center text-xs font-medium tracking-wide">
+          <Shield className="inline h-3 w-3 mr-1" />
           Government of Sri Lanka — Official Land Registry Portal
         </div>
       </div>
