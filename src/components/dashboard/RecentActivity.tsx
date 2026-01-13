@@ -39,7 +39,9 @@ export function RecentActivity({ logs }: RecentActivityProps) {
                 ? "bg-success/10 text-success" 
                 : log.action === 'UPDATE' 
                   ? "bg-warning/10 text-warning"
-                  : "bg-blue-500/10 text-blue-500"
+                  : log.action === 'DELETE'
+                    ? "bg-destructive/10 text-destructive"
+                    : "bg-blue-500/10 text-blue-500"
             )}>
               <Activity className="h-5 w-5" />
             </div>

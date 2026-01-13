@@ -5,8 +5,14 @@ const API_URL = 'http://localhost:5000/api';
 // --- Audit Logging ---
 
 export async function getAuditLogs(): Promise<AuditLog[]> {
-  // TODO: Implement backend endpoint if needed
-  return [];
+  try {
+    const response = await fetch(`${API_URL}/audit`);
+    if (!response.ok) throw new Error('Failed to fetch audit logs');
+    return response.json();
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
 }
 
 // --- Land Management ---
