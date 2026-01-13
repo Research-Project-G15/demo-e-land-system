@@ -134,7 +134,25 @@ const EditDeedPage = () => {
                     </div>
                     <div className="space-y-2">
                         <Label>Deed Type</Label>
-                        <Input value={deedData.deedType} onChange={handleDeedChange('deedType')} />
+                        <Select value={deedData.deedType} onValueChange={(val) => setDeedData(prev => ({ ...prev, deedType: val }))}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select deed type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="Sale">Sale</SelectItem>
+                                <SelectItem value="Gift">Gift</SelectItem>
+                                <SelectItem value="Inheritance">Inheritance</SelectItem>
+                                <SelectItem value="Exchange">Exchange</SelectItem>
+                                <SelectItem value="Donation">Donation</SelectItem>
+                                <SelectItem value="Partition">Partition</SelectItem>
+                                <SelectItem value="Lease">Lease</SelectItem>
+                                <SelectItem value="Mortgage">Mortgage</SelectItem>
+                                 {/* Fallback for existing values not in list to ensure they are displayed */}
+                                {!['Sale', 'Gift', 'Inheritance', 'Exchange', 'Donation', 'Partition', 'Lease', 'Mortgage'].includes(deedData.deedType) && deedData.deedType && (
+                                    <SelectItem value={deedData.deedType}>{deedData.deedType}</SelectItem>
+                                )}
+                            </SelectContent>
+                        </Select>
                     </div>
                     <div className="space-y-2">
                         <Label>Registration Date</Label>
